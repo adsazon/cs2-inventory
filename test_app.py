@@ -141,3 +141,13 @@ def test_total_counts_unique_and_total():
     assert data["unique_items"] == 2
     assert data["total_items"] == 5
     assert data["subtotal"] == 10.0 * 3 + 20.0 * 2
+
+def test_get_single_item():
+    client.post("/inventory/ak47", json={"price": 35.0, "qty": 2})
+    r = client.get("/inventory/ak47")
+    assert r.status_code == 200
+    assert r.json()["qty"] == 2
+
+def test_get_single_item_404():
+    r = client.get("/inventory/unknown")
+    assert r.status_code == 404

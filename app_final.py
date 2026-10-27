@@ -121,6 +121,16 @@ def get_inventory():
     logger.info("Get inventory: %d positions", len(INVENTORY))
     return INVENTORY
 
+@app.get("/inventory/{item_name}")
+def get_item(
+    item_name: str = Path(..., min_length=1, max_length=64, pattern=ITEM_NAME_PATTERN),
+):
+    item = INVENTORY.get(item_name)
+    if not item:
+        raise HTTPException(status_code=404, detail="Item not found")
+    logger.info("Get item=%s", item_name)
+    return {"item": item_name, **item}
+
 @app.delete("/inventory/{item_name}/{qty}")
 def delete_partial(
     item_name: str = Path(..., min_length=1, max_length=64, pattern=ITEM_NAME_PATTERN),
