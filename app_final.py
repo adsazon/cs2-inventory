@@ -118,6 +118,28 @@ def get_inventory():
     logger.info("Get inventory: %d positions", len(INVENTORY))
     return INVENTORY
 
+@app.delete("/inventory/{item_name}/{qty}")
+def delete_partial(
+    item_name: str = Path(..., min_length=1, max_length=64, pattern=ITEM_NAME_PATTERN),
+    qty: int = Path(..., ge=1, description="Сколько штук удалить, >= 1"),
+):
+    item = INVENTORY.get(item_name)
+    if not item:
+        raise HTTPException(status_code=404, detail="Item not found")
+    if qty > item["qty"]:
+        raise HTTPException(
+            status_code=400,
+            detail=f"Cannot remove {qty}, only {item['qty']} in inventory",
+        )
+    item["qty"] -= qty
+    if item["qty"] == 0:
+        del INVENTORY[item_name]
+        logger.info("Removed item=%s completely (removed %d)", item_name, qty)
+    else:
+        logger.info("Decreased item=%s by %d, left %d",
+                    item_name, qty, item["qty"])
+    return {"item": item_name, "qty_left": item.get("qty", 0)}
+
 @app.delete("/inventory/{item_name}")
 def delete_item(
     item_name: str = Path(..., min_length=1, max_length=64, pattern=ITEM_NAME_PATTERN),
