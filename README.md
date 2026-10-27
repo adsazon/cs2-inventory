@@ -1,6 +1,6 @@
 # CS2 Inventory Value
 
-Мини-сервис для учёта инвентаря CS2: добавление предметов, просмотр и расчёт стоимости с комиссией.
+Мини-сервис для учёта инвентаря CS2: добавление/удаление предметов (полное и частичное), просмотр, расчёт суммы и суммы с комиссией.
 
 ## Установка
 
@@ -24,7 +24,24 @@
 
     python -m pytest -v
 
-## Проверка
+## Проверка и диагностика
 
     curl http://127.0.0.1:8000/health
+    curl http://127.0.0.1:8000/version
+    curl -X POST http://127.0.0.1:8000/inventory/ak47 \
+      -H "Content-Type: application/json" -d '{"price":35.0,"qty":5}'
+    curl http://127.0.0.1:8000/inventory
+    curl http://127.0.0.1:8000/inventory/ak47
     curl http://127.0.0.1:8000/inventory/total
+    curl "http://127.0.0.1:8000/inventory/total?commission=10"
+    curl -X DELETE http://127.0.0.1:8000/inventory/ak47/2
+    curl -X DELETE http://127.0.0.1:8000/inventory/ak47
+
+## Обработка ошибок
+
+- 400 — удаление больше, чем есть / превышен MAX_ITEMS
+- 404 — предмет не найден
+- 422 — невалидные входные данные
+- 500 — непредвиденная ошибка (лог с трейсбеком)
+
+Логи: stdout uvicorn (INFO).
