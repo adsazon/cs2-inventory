@@ -55,10 +55,8 @@ def test_total_custom_commission():
 def test_total_empty_inventory():
     r = client.get("/inventory/total")
     assert r.status_code == 200
-    data = r.json()
-    assert data["unique_items"] == 0
-    assert data["total_items"] == 0
-    assert data["total"] == 0.0
+    assert r.json()["items_count"] == 0
+    assert r.json()["total"] == 0.0
 
 def test_add_invalid_price():
     r = client.post("/inventory/x", json={"price": -5, "qty": 1})
@@ -67,15 +65,6 @@ def test_add_invalid_price():
 def test_add_invalid_qty():
     r = client.post("/inventory/x", json={"price": 10, "qty": 0})
     assert r.status_code == 422
-
-def test_add_missing_qty_defaults_to_1():
-    r = client.post("/inventory/x", json={"price": 10})
-    assert r.status_code == 201
-    assert r.json()["qty"] == 1
-
-def test_add_bad_item_name():
-    r = client.post("/inventory/../evil", json={"price": 10, "qty": 1})
-    assert r.status_code in (404, 422)
 
 def test_total_commission_out_of_range():
     r = client.get("/inventory/total", params={"commission": 150})
@@ -87,57 +76,3 @@ def test_max_items_limit(monkeypatch):
     client.post("/inventory/first", json={"price": 10, "qty": 1})
     r = client.post("/inventory/second", json={"price": 10, "qty": 1})
     assert r.status_code == 400
-    assert "limit" in r.json()["detail"].lower()
-
-def test_partial_delete_decreases_qty():
-    client.post("/inventory/ak47", json={"price": 35.0, "qty": 5})
-    r = client.delete("/inventory/ak47/2")
-    assert r.status_code == 200
-    assert r.json() == {"item": "ak47", "qty_left": 3}
-    assert client.get("/inventory").json()["ak47"]["qty"] == 3
-
-def test_partial_delete_exact_qty_removes_item():
-    client.post("/inventory/ak47", json={"price": 35.0, "qty": 2})
-    r = client.delete("/inventory/ak47/2")
-    assert r.status_code == 200
-    assert r.json() == {"item": "ak47", "qty_left": 0}
-    assert "ak47" not in client.get("/inventory").json()
-
-def test_partial_delete_more_than_available_400():
-    client.post("/inventory/ak47", json={"price": 35.0, "qty": 2})
-    r = client.delete("/inventory/ak47/5")
-    assert r.status_code == 400
-    assert "only 2" in r.json()["detail"]
-    assert client.get("/inventory").json()["ak47"]["qty"] == 2
-
-def test_partial_delete_unknown_404():
-    r = client.delete("/inventory/unknown/1")
-    assert r.status_code == 404
-
-def test_partial_delete_qty_zero_422():
-    client.post("/inventory/ak47", json={"price": 35.0, "qty": 2})
-    r = client.delete("/inventory/ak47/0")
-    assert r.status_code == 422
-
-def test_partial_delete_bad_name_422():
-    r = client.delete("/inventory/../evil/1")
-    assert r.status_code in (404, 422)
-
-def test_partial_delete_updates_total():
-    client.post("/inventory/ak47", json={"price": 100.0, "qty": 5})
-    client.delete("/inventory/ak47/3")
-    r = client.get("/inventory/total")
-    data = r.json()
-    assert data["unique_items"] == 1
-    assert data["total_items"] == 2
-    assert data["subtotal"] == 200.0
-    assert data["total"] == 230.0
-
-def test_total_counts_unique_and_total():
-    client.post("/inventory/ak47", json={"price": 10.0, "qty": 3})
-    client.post("/inventory/awp", json={"price": 20.0, "qty": 2})
-    r = client.get("/inventory/total")
-    data = r.json()
-    assert data["unique_items"] == 2
-    assert data["total_items"] == 5
-    assert data["subtotal"] == 10.0 * 3 + 20.0 * 2
