@@ -102,12 +102,15 @@ def inventory_total(
                                      description="Комиссия в %, 0–100"),
 ):
     pct = DEFAULT_COMMISSION_PCT if commission is None else commission
+    unique_items = len(INVENTORY)
+    total_items = sum(v["qty"] for v in INVENTORY.values())
     subtotal = sum(v["price"] * v["qty"] for v in INVENTORY.values())
     total = round(subtotal * (1 + pct / 100), 2)
-    logger.info("Total items=%d subtotal=%.2f commission=%.1f%% total=%.2f",
-                len(INVENTORY), subtotal, pct, total)
+    logger.info("Total unique=%d total_items=%d subtotal=%.2f commission=%.1f%% total=%.2f",
+                unique_items, total_items, subtotal, pct, total)
     return {
-        "items_count": len(INVENTORY),
+        "unique_items": unique_items,
+        "total_items": total_items,
         "subtotal": round(subtotal, 2),
         "commission_pct": pct,
         "total": total,
